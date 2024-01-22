@@ -8,6 +8,7 @@ import type { ThemeVars } from '@storybook/theming';
 import type { API_Layout, API_PanelPositions, API_UI } from '@storybook/types';
 import merge from '../lib/merge';
 import type { State, ModuleFn } from '../index';
+import { addons } from '../lib/addons';
 
 const { document } = global;
 
@@ -18,7 +19,19 @@ export const ActiveTabs = {
 };
 
 export interface SubState {
+  /**
+   * TODO: document
+   */
   layout: API_Layout;
+  /**
+   * TODO: document
+   * TODO: have the manager.ts test functions write into this state instead of addons store
+   */
+  layoutCustomisations: {
+    showNav?: (state: State) => boolean;
+    showTabs?: (state: State) => boolean;
+    showToolbar?: (state: State) => boolean;
+  };
   ui: API_UI;
   selectedPanel: string | undefined;
   theme: ThemeVars;
@@ -51,6 +64,12 @@ export interface SubAPI {
    */
   toggleToolbar: (toggled?: boolean) => void;
   /**
+   * Returns the layout customisation functions defined by end users for supported Storybook UI elements.
+   * @returns An object where each property is either undefined or a user-defined function that must be
+   * called to determine if the UI element described by the property name should be shown.
+   */
+  getLayoutCustomisations: () => SubState['layoutCustomisations'];
+  /**
    * Sets the options for the Storybook UI.
    * @param options - An object containing the options to set.
    */
@@ -72,6 +91,7 @@ const defaultState: SubState = {
     panelPosition: 'bottom',
     showTabs: true,
   },
+  layoutCustomisations: {},
   selectedPanel: undefined,
   theme: create(),
 };
@@ -185,6 +205,10 @@ export const init: ModuleFn = ({ store, provider, singleStory, fullAPI }) => {
       );
     },
 
+    getLayoutCustomisations() {
+      return store.getState().layoutCustomisations;
+    },
+
     resetLayout() {
       return store.setState(
         (state: State) => {
@@ -215,7 +239,23 @@ export const init: ModuleFn = ({ store, provider, singleStory, fullAPI }) => {
     },
 
     getInitialOptions() {
-      const { theme, selectedPanel, ...options } = provider.getConfig();
+      const { theme, selectedPanel, toolbar, ...options } = provider.getConfig();
+
+      const layoutCustomisations = {
+        ...defaultState.layoutCustomisations,
+      };
+
+      const isFunction = (val: unknown): val is CallableFunction => typeof val === 'function';
+      const config = addons.getConfig();
+
+      // FIXME/TODO
+      console.log('layout: getInitialOptions');
+      console.log(toolbar);
+      console.log('layout: ---');
+      if (isFunction(config.toolbar?.showToolbar)) {
+        console.log('recognised as fn');
+        layoutCustomisations.showToolbar = config.toolbar?.showToolbar;
+      }
 
       return {
         ...defaultState,
@@ -224,6 +264,7 @@ export const init: ModuleFn = ({ store, provider, singleStory, fullAPI }) => {
           ...pick(options, Object.keys(defaultState.layout)),
           ...(singleStory && { showNav: false }),
         },
+        layoutCustomisations,
         ui: {
           ...defaultState.ui,
           ...pick(options, Object.keys(defaultState.ui)),

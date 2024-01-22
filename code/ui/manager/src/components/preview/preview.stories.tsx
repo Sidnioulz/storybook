@@ -2,7 +2,12 @@ import React, { useEffect } from 'react';
 
 import { parsePath, createPath } from 'history';
 import type { Combo, StoryEntry } from '@storybook/manager-api';
-import { addons, Provider as ManagerProvider, Consumer } from '@storybook/manager-api';
+import {
+  addons,
+  ManagerContext,
+  Provider as ManagerProvider,
+  Consumer,
+} from '@storybook/manager-api';
 import { Location, BaseLocationProvider } from '@storybook/router';
 
 import { ThemeProvider, ensure as ensureTheme, themes } from '@storybook/theming';
@@ -145,55 +150,95 @@ export const WithCanvasTab = () => (
   </Consumer>
 );
 
-export const WithTabs = () => <Preview {...previewProps} />;
+export const WithTabs = () => (
+  <Consumer>
+    {({ api }: Combo) => {
+      return <Preview {...previewProps} api={{ ...api, getElements: () => ({}) }} />;
+    }}
+  </Consumer>
+);
 
 export const WithTabsHidden = () => (
   <Consumer>
-    {({ api }: Combo) => {
+    {({ api, state }: Combo) => {
+      return (
+        <ManagerContext.Provider
+          value={{
+            api,
+            state: { ...state, layout: { ...state.layout, showTabs: false } },
+          }}
+        >
+          <Preview {...previewProps} api={{ ...api, getElements: () => ({}) }} />
+        </ManagerContext.Provider>
+      );
+    }}
+  </Consumer>
+);
+export const WithTabsLayoutCustomisation = () => (
+  <Consumer>
+    {({ api, state }: Combo) => {
       return (
         <Preview
           {...previewProps}
-          options={{ ...previewProps.options, showTabs: false }}
-          api={{ ...api, getElements: () => ({}) }}
+          api={{
+            ...api,
+            getLayoutCustomisations: () => ({
+              showTabs() {
+                console.log('showTabs customisation called');
+                return false;
+              },
+            }),
+            getElements: () => ({}),
+          }}
         />
       );
     }}
   </Consumer>
 );
 
-export const WithToolbar = () => <Preview {...previewProps} />;
+export const WithToolbar = () => (
+  <Consumer>
+    {({ api }: Combo) => {
+      return <Preview {...previewProps} api={{ ...api, getElements: () => ({}) }} />;
+    }}
+  </Consumer>
+);
 
 export const WithToolbarHidden = () => (
+  <Consumer>
+    {({ api, state }: Combo) => {
+      return (
+        <ManagerContext.Provider
+          value={{
+            api,
+            state: { ...state, layout: { ...state.layout, showToolbar: false } },
+          }}
+        >
+          <Preview {...previewProps} api={{ ...api, getElements: () => ({}) }} />
+        </ManagerContext.Provider>
+      );
+    }}
+  </Consumer>
+);
+
+export const WithToolbarLayoutCustomisation = () => (
   <Consumer>
     {({ api }: Combo) => {
       return (
         <Preview
           {...previewProps}
-          options={{ ...previewProps.options, showToolbar: false }}
-          api={{ ...api, getElements: () => ({}) }}
+          api={{
+            ...api,
+            getLayoutCustomisations: () => ({
+              showToolbar() {
+                console.log('showToolbar customisation called');
+                return false;
+              },
+            }),
+            getElements: () => ({}),
+          }}
         />
       );
     }}
   </Consumer>
 );
-
-export const WithToolbarHiddenFromConfig = () => {
-  useEffect(() => {
-    addons.setConfig({
-      toolbar: {
-        showToolbar() {
-          return false;
-        },
-      },
-    });
-
-    return () => {
-      addons.setConfig({
-        toolbar: {
-          showToolbar: null,
-        },
-      });
-    };
-  }, []);
-  return <Preview {...previewProps} />;
-};

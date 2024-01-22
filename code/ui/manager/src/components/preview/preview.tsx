@@ -3,14 +3,21 @@ import React, { Fragment, useMemo, useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { global } from '@storybook/global';
 
-import { type API, Consumer, type Combo, merge, addons, types } from '@storybook/manager-api';
+import {
+  addons,
+  type API,
+  Consumer,
+  type Combo,
+  merge,
+  useStorybookState,
+  types,
+} from '@storybook/manager-api';
 import type { Addon_BaseType } from '@storybook/types';
 import { PREVIEW_BUILDER_PROGRESS, SET_CURRENT_STORY } from '@storybook/core-events';
 
 import { Loader } from '@storybook/components';
 import { Location } from '@storybook/router';
 
-import useShowToolbar from '../hooks/useShowToolbar';
 import * as S from './utils/components';
 import { ZoomProvider, ZoomConsumer } from './tools/zoom';
 import { defaultWrappers, ApplyWrappers } from './wrappers';
@@ -59,11 +66,12 @@ const useTabs = (getElements: API['getElements'], entry: PreviewProps['entry']) 
   }, [entry, ...tabsFromConfig]);
 };
 
+const isFunction = (val: unknown): val is CallableFunction => typeof val === 'function';
+
 const Preview = React.memo<PreviewProps>(function Preview(props) {
   const {
     api,
     id: previewId,
-    options,
     viewMode,
     storyId,
     entry = undefined,
@@ -76,9 +84,36 @@ const Preview = React.memo<PreviewProps>(function Preview(props) {
   const tabs = useTabs(getElements, entry);
 
   const shouldScale = viewMode === 'story';
-  const { showToolbar, showTabs = true } = options;
-  const shouldShowToolbar = useShowToolbar(showToolbar);
-  const visibleTabsInToolbar = showTabs ? tabs : [];
+
+  const state = useStorybookState();
+  const customisations = api.getLayoutCustomisations();
+
+  console.log(`preview:
+  showTabs layout: ${state.layout.showTabs}
+  showTabs custo: ${customisations.showTabs}
+  tabs: ${JSON.stringify(tabs)}
+  showToolbar layout: ${state.layout.showToolbar}
+  showToolbar custo: ${customisations.showToolbar}
+`);
+
+  const showTabs = isFunction(customisations.showTabs)
+    ? customisations.showTabs(state)
+    : state.layout.showTabs ?? true;
+
+  const showToolbar = isFunction(customisations.showToolbar)
+    ? customisations.showToolbar(state)
+    : state.layout.showToolbar ?? true;
+
+  const visibleTabsInToolbar = showTabs
+    ? [
+        ...tabs,
+        {
+          id: 'docs',
+          type: 'tabs',
+          title: 'Test',
+        },
+      ]
+    : [];
 
   const previousStoryId = useRef(storyId);
 
@@ -108,14 +143,8 @@ const Preview = React.memo<PreviewProps>(function Preview(props) {
         </Helmet>
       )}
       <ZoomProvider shouldScale={shouldScale}>
-        <ToolbarComp
-          key="tools"
-          entry={entry}
-          api={api}
-          isShown={shouldShowToolbar}
-          tabs={visibleTabsInToolbar}
-        />
-        <S.FrameWrap key="frame" offset={shouldShowToolbar ? 40 : 0}>
+        <ToolbarComp key="tools" entry={entry} api={api} isShown={showToolbar} tabs={tabs} />
+        <S.FrameWrap key="frame" offset={showToolbar ? 40 : 0}>
           <Canvas {...{ withLoader, baseUrl }} />
           {tabs.map(({ render: Render, match, ...t }, i) => {
             // @ts-expect-error (Converted from ts-ignore)

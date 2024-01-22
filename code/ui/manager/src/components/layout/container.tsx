@@ -599,6 +599,7 @@ class Layout extends Component<LayoutProps, LayoutState> {
             viewMode,
             animate: !isDragging,
             isFullscreen,
+            // TODO: and here too? showToolbar passed directly but read from options by preview
             showToolbar,
             position: getPreviewPosition({
               isFullscreen,

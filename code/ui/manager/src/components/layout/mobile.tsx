@@ -191,6 +191,7 @@ export const Mobile = ({
         <Sidebar />
         <div>
           <div hidden={viewMode !== 'docs' && viewMode !== 'story'}>
+            {/* TODO: discuss with Norbert, isn't there a bug here? */}
             <Preview showToolbar={options.showToolbar} id="main" viewMode={viewMode} />
           </div>
           {pages.map(({ id, render: Content }) => (

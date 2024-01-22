@@ -7,4 +7,20 @@ addons.setConfig({
   sidebar: {
     renderLabel: ({ name, type }) => (type === 'story' ? name : startCase(name)),
   },
+
+  // FIXME/TODO
+  toolbar: {
+    showNav: () => {
+      console.log('showNav: actual user config.');
+      return false;
+    },
+    showTabs: ({ layout: { showToolbar, showTabs } }) => {
+      console.log('showTabs: actual user config.');
+      return false;
+    },
+    showToolbar: () => {
+      console.log('showToolbar: actual user config.');
+      return false;
+    },
+  },
 });

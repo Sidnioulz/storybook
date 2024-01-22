@@ -143,6 +143,9 @@ export const init: ModuleFn<SubAPI, SubState> = ({ provider, store, fullAPI }) =
       return store.getState().addons[addonId];
     },
   };
+  console.log('addons: expecting the store to be up-to-date now');
+  console.log(store.getState().toolbar);
+  console.log('addons: ---');
 
   return {
     api,

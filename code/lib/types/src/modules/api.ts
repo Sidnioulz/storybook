@@ -64,6 +64,12 @@ export interface API_Provider<API> {
     StoryMapper?: API_StoryMapper;
     [k: string]: any;
   } & Partial<API_UIOptions>;
+  getLayoutCustomisations(): {
+    // FIXME: unknown[] bc I dont yet know where the whole state is;
+    showNav: (state: State) => boolean;
+    showTabs: (state: State) => boolean;
+    showToolbar: (state: State) => boolean;
+  };
   [key: string]: any;
 }
 
