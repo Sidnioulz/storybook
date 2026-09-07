@@ -59,15 +59,30 @@ export const installYarn2 = async ({ cwd, dryRun, debug }: YarnOptions) => {
     ])
   );
 
-  const command = [
-    `yarn set version berry`,
+  const command = [];
+
+  if (process.env.SB_LOCAL_YARN_RELEASE) {
+    // Offline environment: reuse the monorepo's checked-in yarn release instead of
+    // downloading one from repo.yarnpkg.com (blocked by the egress proxy).
+    const releaseName = process.env.SB_LOCAL_YARN_RELEASE.split('/').pop() as string;
+    await mkdir(join(cwd, '.yarn', 'releases'), { recursive: true });
+    await writeFile(
+      join(cwd, '.yarn', 'releases', releaseName),
+      await readFile(process.env.SB_LOCAL_YARN_RELEASE)
+    );
+    await writeFile(join(cwd, '.yarnrc.yml'), `yarnPath: .yarn/releases/${releaseName}\n`);
+  } else {
+    command.push(`yarn set version berry`);
+  }
+
+  command.push(
     `yarn config set enableGlobalCache true`, // Use the global cache so we aren't re-caching dependencies each time we run sandbox
     `yarn config set checksumBehavior ignore`,
     // Yarn 4.15.0 defaults `npmMinimalAgeGate` to 1d, which quarantines freshly
     // published Storybook packages from the local Verdaccio registry. Disable
     // the gate inside sandboxes so installs aren't blocked.
-    `yarn config set npmMinimalAgeGate 0`,
-  ];
+    `yarn config set npmMinimalAgeGate 0`
+  );
 
   if (!pnpApiExists) {
     command.push(`yarn config set nodeLinker node-modules`);
